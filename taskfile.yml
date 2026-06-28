@@ -52,6 +52,14 @@ tasks:
     cmds:
       - '{{.SDK}}/bin/monkeydo bin/{{.NAME}}.prg {{.DEVICE}}'
 
+  package:
+    desc: Export bin/{{.NAME}}.iq for sharing/publishing on the Connect IQ Store
+    deps: [key, clean]
+    cmds:
+      - mkdir -p bin
+      # -e packages a release build for every product in manifest.xml (no -d).
+      - '{{.SDK}}/bin/monkeyc -e -f monkey.jungle -o bin/{{.NAME}}.iq -y developer_key.der -r -w'
+
   clean:
     desc: Remove build output
     cmds:
