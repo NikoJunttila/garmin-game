@@ -14,18 +14,21 @@ const SUB_FALLBACK_CX = 144;
 const SUB_FALLBACK_CY = 31;
 const SUB_FALLBACK_R = 18;
 
-// Centered text rows, in the clear band between the top-right circle (ends ~y49)
-// and the cat at the bottom (top ~y122).
-const READY_TITLE_Y = 68;
-const READY_HINT_Y = 98;
+// Centered text must stay in the "main area" — below the top-right sub-window circle
+// (its orange ring reaches ~y55) and above the ground strip (y140). READY has 2 roomy
+// lines; GAME OVER packs 4 lines into the same band, so it uses tighter plates.
+const READY_TITLE_Y = 72;
+const READY_HINT_Y = 104;
 
-const OVER_TITLE_Y = 50;
-const OVER_SCORE_Y = 80;
+const OVER_TITLE_Y = 66;
+const OVER_SCORE_Y = 87;
 const OVER_BEST_Y = 108;
-const OVER_HINT_Y = 136;
+const OVER_HINT_Y = 129;
 
-// Half-height of the black text "plate" drawn behind centered labels.
-const PLATE_HALF_LABEL = 15;
+// Black text-plate half-heights (the label font size is unchanged either way; only the
+// backing box differs). BIG for READY's 2 lines, SMALL so GAME OVER's 4 lines fit the band.
+const PLATE_HALF_BIG = 15;
+const PLATE_HALF_SMALL = 10;
 
 // The game view: owns the frame timer and draws every frame from the game state.
 // Physics lives only in CatHopGame.tick() (called from onTick), never in onUpdate,
@@ -208,28 +211,28 @@ class CatHopView extends WatchUi.View {
     }
 
     private function drawReady(dc as Dc) as Void {
-        drawPlate(dc, READY_TITLE_Y, "CAT HOP");
-        drawPlate(dc, READY_HINT_Y, "TAP TO START");
+        drawPlate(dc, READY_TITLE_Y, "CAT HOP", PLATE_HALF_BIG);
+        drawPlate(dc, READY_HINT_Y, "TAP TO START", PLATE_HALF_BIG);
         // (Best score is shown on the GAME OVER screen, to keep READY uncluttered.)
     }
 
     private function drawGameOver(dc as Dc) as Void {
-        drawPlate(dc, OVER_TITLE_Y, "GAME OVER");
-        drawPlate(dc, OVER_SCORE_Y, "SCORE " + mGame.getScore().format("%d"));
-        drawPlate(dc, OVER_BEST_Y, "BEST " + mGame.getBest().format("%d"));
+        drawPlate(dc, OVER_TITLE_Y, "GAME OVER", PLATE_HALF_SMALL);
+        drawPlate(dc, OVER_SCORE_Y, "SCORE " + mGame.getScore().format("%d"), PLATE_HALF_SMALL);
+        drawPlate(dc, OVER_BEST_Y, "BEST " + mGame.getBest().format("%d"), PLATE_HALF_SMALL);
         // Only invite a restart once the lock has expired, so the death tap can't relaunch.
         if (mGame.canRestart()) {
-            drawPlate(dc, OVER_HINT_Y, "TAP");
+            drawPlate(dc, OVER_HINT_Y, "TAP", PLATE_HALF_SMALL);
         }
     }
 
     // Centered white text on a black plate, so words stay legible over the scene.
-    private function drawPlate(dc as Dc, cy as Number, text as String) as Void {
+    private function drawPlate(dc as Dc, cy as Number, text as String, halfH as Number) as Void {
         var font = labelFont();
         var w = dc.getTextWidthInPixels(text, font);
         var pad = 6;
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
-        dc.fillRectangle(mCx - w / 2 - pad, cy - PLATE_HALF_LABEL, w + 2 * pad, PLATE_HALF_LABEL * 2);
+        dc.fillRectangle(mCx - w / 2 - pad, cy - halfH, w + 2 * pad, halfH * 2);
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
         dc.drawText(mCx, cy, font, text, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
     }
