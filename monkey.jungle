@@ -1,0 +1,3 @@
+# Build configuration. The compiler reads this to find the manifest and,
+# from there, your source/ and resources/ folders.
+project.manifest = manifest.xml

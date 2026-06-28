@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- App definition: id, type, name, entry class, and target devices. -->
+<iq:manifest version="3" xmlns:iq="http://www.garmin.com/xml/connectiq">
+    <iq:application
+        id="33e41ff8b61548ad8ccda78c6d8182a0"
+        type="watch-app"
+        name="@Strings.AppName"
+        entry="FlappyApp"
+        launcherIcon="@Drawables.LauncherIcon"
+        minApiLevel="6.0.0">
+
+        <!-- Watches this builds for. The Instinct 3 Solar (176x176, 1-bit MIP,
+             semi-octagon). The single 45mm product id covers both 45mm and 50mm. -->
+        <iq:products>
+            <iq:product id="instinct3solar45mm"/>
+        </iq:products>
+
+        <!-- A game reads no sensors and only stores a high score locally
+             (Application.Storage, which needs no permission). -->
+        <iq:permissions/>
+
+        <!-- Supported languages. -->
+        <iq:languages>
+            <iq:language>eng</iq:language>
+        </iq:languages>
+
+        <!-- Shared code libraries (none used). -->
+        <iq:barrels/>
+
+    </iq:application>
+</iq:manifest>

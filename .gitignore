@@ -1,0 +1,30 @@
+# ─── Connect IQ build output ───────────────────────────────────────────────
+# Everything the compiler generates lands in bin/ (gen/, *-mir/, .prg, debug xml)
+bin/
+gen/
+
+# Compiled programs and debug symbols (in case output is written elsewhere)
+*.prg
+*.prg.debug.xml
+
+# Exported store package (created by `monkeyc -e` / "Build for Export")
+*.iq
+
+# ─── Developer signing keys — personal, NEVER commit ───────────────────────
+# Canonical generated key is developer_key.der; the globs cover any .der/.pem,
+# and the bare name (no extension) is kept since the globs don't match it.
+developer_key
+*.der
+*.pem
+
+# ─── Editor / IDE ──────────────────────────────────────────────────────────
+# This project drives builds via Task (taskfile.yml), not the VS Code extension.
+# If you adopt the Connect IQ VS Code extension and want to share run configs,
+# remove the next line (or un-ignore .vscode/launch.json specifically).
+.vscode/
+*.swp
+*~
+
+# ─── OS cruft ──────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db

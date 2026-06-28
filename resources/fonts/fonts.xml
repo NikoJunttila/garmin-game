@@ -1,0 +1,14 @@
+<!-- Custom bitmap fonts (BMFont .fnt + 1-bit PNG atlas), generated from Noto Sans
+     Condensed by tools/genfont.py. antialias MUST be false: the Instinct 3 Solar is
+     a 1-bit MIP panel (antiAliasedFontSupport=false), so glyphs are pure black/white.
+     `filter` subsets the compiled atlas to only the glyphs the face actually draws. -->
+<fonts xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://developer.garmin.com/downloads/connect-iq/resources.xsd">
+    <!-- Hero time "HH:MM": digits + colon. Digits are mono-width so the clock never shifts. -->
+    <font id="NordicHero" filename="nordic_hero.fnt" antialias="false" filter="0123456789:" />
+
+    <!-- Labels/values/date: digits, A-Z, and the punctuation the face emits. -->
+    <font id="NordicLabel" filename="nordic_label.fnt" antialias="false" filter="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ .,:%-/" />
+
+    <!-- Small font for the battery percentage in the bottom status row. -->
+    <font id="NordicSmall" filename="nordic_small.fnt" antialias="false" filter="0123456789%" />
+</fonts>
