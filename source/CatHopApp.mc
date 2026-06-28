@@ -7,16 +7,16 @@ import Toybox.WatchUi;
 // The application object. Its one job is to hand back the initial view and its
 // input delegate. The high score lives in Application.Storage and is persisted by
 // the game the moment a run ends, so no save is needed here.
-class FlappyApp extends Application.AppBase {
+class CatHopApp extends Application.AppBase {
 
-    private var mGame as FlappyGame?;
+    private var mGame as CatHopGame?;
 
     function initialize() {
         AppBase.initialize();
     }
 
     function onStart(state as Dictionary?) as Void {
-        // Vary the pipe sequence per launch.
+        // Vary the obstacle sequence per launch.
         Math.srand(System.getTimer());
     }
 
@@ -25,9 +25,9 @@ class FlappyApp extends Application.AppBase {
 
     // The game view plus its button delegate.
     function getInitialView() as [Views] or [Views, InputDelegates] {
-        mGame = new FlappyGame();
-        var view = new FlappyView(mGame);
-        var delegate = new FlappyDelegate(view);
+        mGame = new CatHopGame();
+        var view = new CatHopView(mGame);
+        var delegate = new CatHopDelegate(view);
         return [ view, delegate ];
     }
 }

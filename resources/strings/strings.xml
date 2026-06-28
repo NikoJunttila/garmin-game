@@ -1,5 +1,5 @@
 <!-- Text values used by the app. -->
 <strings xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://developer.garmin.com/downloads/connect-iq/resources.xsd">
     <!-- The app name shown in the watch's app list and Garmin Connect. -->
-    <string id="AppName">Flappy Watch</string>
+    <string id="AppName">Cat Hop</string>
 </strings>

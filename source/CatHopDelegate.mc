@@ -1,14 +1,14 @@
 import Toybox.Lang;
 import Toybox.WatchUi;
 
-// Input handling. Per the user's choice, START/GPS, Up, and Down all flap (forgiving,
+// Input handling. Per the user's choice, START/GPS, Up, and Down all jump (forgiving,
 // one-handed friendly); BACK exits. We use the semantic BehaviorDelegate callbacks
 // rather than raw key codes so the mapping stays correct across devices.
-class FlappyDelegate extends WatchUi.BehaviorDelegate {
+class CatHopDelegate extends WatchUi.BehaviorDelegate {
 
-    private var mView as FlappyView;
+    private var mView as CatHopView;
 
-    function initialize(view as FlappyView) {
+    function initialize(view as CatHopView) {
         BehaviorDelegate.initialize();
         mView = view;
     }

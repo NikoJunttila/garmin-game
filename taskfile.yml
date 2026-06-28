@@ -3,7 +3,7 @@ version: '3'
 vars:
   SDK: '{{.HOME}}/.Garmin/ConnectIQ/Sdks/connectiq-sdk-lin-9.2.0-2026-06-09-92a1605b2'
   DEVICE: instinct3solar45mm
-  NAME: FlappyWatch
+  NAME: CatHop
   # TTFs the custom bitmap fonts are rendered from (Noto Sans Condensed, Apache-2.0).
   HERO_TTF: /usr/share/fonts/noto/NotoSans-CondensedBlack.ttf
   LABEL_TTF: /usr/share/fonts/noto/NotoSans-CondensedSemiBold.ttf

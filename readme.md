@@ -1,16 +1,18 @@
-# Flappy Watch — a Flappy Bird–style game for the Instinct 3 Solar
+# Cat Hop — a one-button pounce runner for the Instinct 3 Solar
 
-A Connect IQ **game app** (Monkey C) for the **Garmin Instinct 3 Solar**. Tap a button to flap a
-bird upward; gravity pulls it down. Fly through the gaps in scrolling pipes — passing one scores a
-point. Touch a pipe, the ceiling, or the ground and it's game over. Everything is white on black,
-since the panel is a 1-bit MIP display with only two colors.
+A Connect IQ **game app** (Monkey C) for the **Garmin Instinct 3 Solar**. A cat runs along the
+ground; tap a button to make it **jump** over obstacles scrolling in from the right. Clear an
+obstacle to score; clip one and the run ends. Everything is white on black, since the panel is a
+1-bit MIP display with only two colors.
 
 ## How to play
 
-- **START / Up / Down** — flap (any of the three works, so it's easy one-handed).
+- **START / Up / Down** — jump (any of the three works, so it's easy one-handed). You can only jump
+  from the ground (no mid-air double jump).
 - **BACK** — quit to the watch.
-- States: **READY** ("PRESS START") → **PLAYING** → **GAME OVER** (shows your score and best).
-  Your best score is saved between runs.
+- States: **READY** ("TAP TO START") → **PLAYING** → **GAME OVER** (shows your score and best).
+  Your best score is saved between runs. Speed ramps up as you score, but obstacles always stay
+  clearable with a single well-timed jump.
 
 Built only for the **Instinct 3 Solar 45mm** (`instinct3solar45mm`, 176×176, semi-octagon).
 That one product id also covers the 50mm hardware. Uses the Garmin SDK — Connect IQ **9.2.0**,
@@ -19,28 +21,33 @@ device API level **6.0**.
 ## How it works (the 30-second tour)
 
 1. `manifest.xml` declares the app as a `watch-app`, targets `instinct3solar45mm`, needs no
-   permissions, and names the entry class (`FlappyApp`).
-2. `FlappyApp.getInitialView()` returns a `FlappyView` **and** a `FlappyDelegate`.
-3. `FlappyDelegate` (a `BehaviorDelegate`) maps the buttons: `onSelect`/`onNextPage`/`onPreviousPage`
-   → flap, `onBack` → exit. Each press calls `FlappyView.onTap()`.
-4. `FlappyView` (a `WatchUi.View`) owns a 20 Hz `Timer.Timer`. Each tick it calls
-   `FlappyGame.tick()` then `WatchUi.requestUpdate()`; `onUpdate(dc)` draws the bird, pipes, ground,
-   the live score in the top-right round sub-window (via `WatchUi.getSubscreen()`), and the
+   permissions, and names the entry class (`CatHopApp`).
+2. `CatHopApp.getInitialView()` returns a `CatHopView` **and** a `CatHopDelegate`.
+3. `CatHopDelegate` (a `BehaviorDelegate`) maps the buttons: `onSelect`/`onNextPage`/`onPreviousPage`
+   → jump, `onBack` → exit. Each press calls `CatHopView.onTap()`.
+4. `CatHopView` (a `WatchUi.View`) owns a 20 Hz `Timer.Timer`. Each tick it calls
+   `CatHopGame.tick()` then `WatchUi.requestUpdate()`; `onUpdate(dc)` draws the ground, obstacles,
+   the cat, the live score in the top-right round sub-window (via `WatchUi.getSubscreen()`), and the
    READY/GAME-OVER text. **All physics lives in the game tick, never in `onUpdate`.**
-5. `FlappyGame` is pure logic: the state machine, fixed-point physics (position/velocity in
-   1/16-px units — no Float in the hot loop), pipe motion + recycling, collision, scoring, and the
-   high score (persisted via `Application.Storage`, no permission needed).
+5. `CatHopGame` is pure logic: the state machine, fixed-point grounded-jump physics (position/velocity
+   in 1/16-px units — no Float in the hot loop), obstacle motion + recycling, AABB collision, scoring,
+   a difficulty ramp, and the high score (persisted via `Application.Storage`, no permission needed).
 
-Tunables (difficulty, feel, layout) are the module-level `const`s at the top of `FlappyGame.mc`
-(gravity, flap impulse, gap height, scroll speed, …) and `FlappyView.mc` (tick rate, text rows).
+### Fairness (why the numbers are what they are)
+
+The jump's apex and air-time are fixed (a tap is a fixed impulse — the watch gives no press-duration).
+Clearing the tallest obstacle requires the jump's "high-enough" window to cover the cat+obstacle
+overlap span, which means the **scroll speed has a fair minimum** (slow scroll is actually the
+*hardest* case). Obstacle spacing is therefore stored in travel-**ticks** rather than pixels, so the
+pixel gap scales with speed and stays clearable as the game ramps up. The constants in
+`CatHopGame.mc` were derived from the exact integer loop, so what you tune is what the watch runs.
 
 ## Display constraints (why it looks the way it does)
 
 The Instinct 3 Solar is a transflective MIP panel: **2-color (black + white) only**, no grays, no
-anti-aliasing, no alpha blending, and no burn-in. So the game leans on bold solid shapes: white
-pipes and a white bird on black, each with a 1-px black outline so they never visually merge, and
-text drawn on small black plates so it stays legible over pipes. A full-screen clear-and-redraw
-every frame is flicker-free on MIP.
+anti-aliasing, no alpha blending, and no burn-in. So the game uses bold solid shapes: a white cat and
+white obstacles on black, each with a 1-px black outline so they never visually merge, and text on
+small black plates so it stays legible. A full clear-and-redraw every frame is flicker-free on MIP.
 
 ## Build & run
 
@@ -48,17 +55,17 @@ Requires [Task](https://taskfile.dev). The first build auto-generates a signing 
 
 ```sh
 task key      # one-time: create developer_key.der
-task build    # compile -> bin/FlappyWatch.prg
+task build    # compile -> bin/CatHop.prg
 task sim      # launch the Connect IQ simulator (leave it open)
 task run      # push the app to the simulator
 ```
 
 In the simulator, pick **Instinct 3 Solar 45mm**, then use the on-screen buttons (or the mapped
-keyboard keys) — START/GPS, Up, or Down to flap, BACK to quit.
+keyboard keys) — START/GPS, Up, or Down to jump, BACK to quit.
 
 ## Reused assets
 
 The custom 1-bit bitmap font `NordicLabel` is kept from the original watch face and reused as-is for
-all on-screen text — the sub-window score and the "PRESS START" / "GAME OVER" / "BEST" labels. The
-other two fonts (`NordicHero`, `NordicSmall`) remain in `resources/fonts/` but are currently unused.
-Regenerate via `task font` only if you change them.
+all on-screen text — the sub-window score and the "CAT HOP" / "TAP TO START" / "GAME OVER" labels.
+The other two fonts (`NordicHero`, `NordicSmall`) remain in `resources/fonts/` but are currently
+unused. Regenerate via `task font` only if you change them.

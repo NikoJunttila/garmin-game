@@ -3,8 +3,8 @@ import Toybox.Lang;
 import Toybox.Timer;
 import Toybox.WatchUi;
 
-// ---- View-only layout (text rows etc.). Gameplay/geometry consts live in
-//      FlappyGame.mc and are shared globally. ----
+// ---- View-only layout. Gameplay/geometry consts live in CatHopGame.mc and are
+//      shared globally. ----
 const TICK_MS = 50;        // game loop period — 20 Hz (50ms is Garmin's min timer interval)
 
 // The Instinct 3 Solar has a small round sub-window (the "orange circle") in the top-right
@@ -14,24 +14,25 @@ const SUB_FALLBACK_CX = 144;
 const SUB_FALLBACK_CY = 31;
 const SUB_FALLBACK_R = 18;
 
-const READY_TITLE_Y = 40;
-const READY_HINT_Y = 112;
-const READY_BEST_Y = 142;
+// Centered text rows, in the clear band between the top-right circle (ends ~y49)
+// and the cat at the bottom (top ~y122).
+const READY_TITLE_Y = 68;
+const READY_HINT_Y = 98;
 
-const OVER_TITLE_Y = 42;
-const OVER_SCORE_Y = 74;
-const OVER_BEST_Y = 104;
+const OVER_TITLE_Y = 50;
+const OVER_SCORE_Y = 80;
+const OVER_BEST_Y = 108;
 const OVER_HINT_Y = 136;
 
 // Half-height of the black text "plate" drawn behind centered labels.
 const PLATE_HALF_LABEL = 15;
 
 // The game view: owns the frame timer and draws every frame from the game state.
-// Physics lives only in FlappyGame.tick() (called from onTick), never in onUpdate,
+// Physics lives only in CatHopGame.tick() (called from onTick), never in onUpdate,
 // so an extra system repaint can never double-step the simulation.
-class FlappyView extends WatchUi.View {
+class CatHopView extends WatchUi.View {
 
-    private var mGame as FlappyGame;
+    private var mGame as CatHopGame;
     private var mTimer as Timer.Timer?;
 
     private var mCx as Number = SCREEN_W / 2;
@@ -47,18 +48,17 @@ class FlappyView extends WatchUi.View {
     // null and labelFont() falls back to a system font, so we always draw.
     private var mLabelFont as WatchUi.FontResource?;
 
-    function initialize(game as FlappyGame) {
+    function initialize(game as CatHopGame) {
         View.initialize();
         mGame = game;
     }
 
-    // Cache screen center and load the fonts once. No setLayout — the whole screen
-    // is drawn in code.
+    // Cache screen center, load the font, and locate the sub-window. No setLayout —
+    // the whole screen is drawn in code.
     function onLayout(dc as Dc) as Void {
         mCx = dc.getWidth() / 2;
         mLabelFont = WatchUi.loadResource(Rez.Fonts.NordicLabel) as WatchUi.FontResource;
 
-        // Locate the round sub-window so the score can live in it.
         var sub = WatchUi.getSubscreen();
         if (sub != null) {
             mHasSub = true;
@@ -92,7 +92,7 @@ class FlappyView extends WatchUi.View {
     }
 
     // A button press (from the delegate). Apply it now and redraw immediately so
-    // the flap feels instant, even between ticks.
+    // the jump feels instant, even between ticks.
     function onTap() as Void {
         mGame.onAction();
         WatchUi.requestUpdate();
@@ -102,11 +102,10 @@ class FlappyView extends WatchUi.View {
         // Opaque black field, then draw everything in white (1-bit MIP: no AA, no alpha).
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
         dc.clear();
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
 
-        drawPipes(dc);
-        drawBird(dc);
         drawGround(dc);
+        drawObstacles(dc);
+        drawCat(dc);
 
         var state = mGame.getState();
         if (state == STATE_PLAYING) {
@@ -120,49 +119,76 @@ class FlappyView extends WatchUi.View {
 
     // ---- drawing helpers ----------------------------------------------------
 
-    private function drawPipes(dc as Dc) as Void {
-        var pipes = mGame.getPipes();
-        var half = GAP_H / 2;
-        for (var i = 0; i < PIPE_COUNT; i += 1) {
-            var p = pipes[i];
-            var px = p[PX];
-            if (px > SCREEN_W || px + PIPE_W < 0) { continue; }   // off-screen (e.g. parked in READY)
-            var gapTop = p[PGCY] - half;
-            var gapBot = p[PGCY] + half;
-
-            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-            if (gapTop > 0) { dc.fillRectangle(px, 0, PIPE_W, gapTop); }
-            if (gapBot < GROUND_Y) { dc.fillRectangle(px, gapBot, PIPE_W, GROUND_Y - gapBot); }
-
-            // 1px black outline so a white pipe edge never merges with the bird.
-            dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
-            dc.setPenWidth(1);
-            if (gapTop > 0) { dc.drawRectangle(px, 0, PIPE_W, gapTop); }
-            if (gapBot < GROUND_Y) { dc.drawRectangle(px, gapBot, PIPE_W, GROUND_Y - gapBot); }
-        }
-    }
-
-    // White body + black rim (so it reads against white pipes) + black eye + white beak.
-    private function drawBird(dc as Dc) as Void {
-        var by = mGame.getBirdYPx();
-
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        dc.fillCircle(BIRD_X, by, BIRD_R);
-        dc.fillRectangle(BIRD_X + BIRD_R - 1, by - 1, 4, 3);   // beak nub
-
-        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
-        dc.setPenWidth(1);
-        dc.drawCircle(BIRD_X, by, BIRD_R);                     // rim
-        dc.fillCircle(BIRD_X + 3, by - 2, 1);                  // eye
-    }
-
+    // White ground strip with scrolling black dashes for a sense of speed.
     private function drawGround(dc as Dc) as Void {
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
         dc.fillRectangle(0, GROUND_Y, SCREEN_W, SCREEN_H - GROUND_Y);
+        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
+        var off = mGame.getGroundOffset();
+        for (var x = -off; x < SCREEN_W; x += GROUND_DASH) {
+            dc.fillRectangle(x, GROUND_Y + 4, 6, 2);
+        }
+    }
+
+    private function drawObstacles(dc as Dc) as Void {
+        var obst = mGame.getObstacles();
+        for (var i = 0; i < OBST_COUNT; i += 1) {
+            var p = obst[i];
+            var ox = p[OX];
+            if (ox > SCREEN_W || ox + OBST_W < 0) { continue; }   // off-screen (e.g. parked in READY)
+            var oh = p[OH];
+            var oy = GROUND_Y - oh;
+
+            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+            dc.fillRectangle(ox, oy, OBST_W, oh);
+            // 1px black outline so the white block never merges with the white cat.
+            dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
+            dc.setPenWidth(1);
+            dc.drawRectangle(ox, oy, OBST_W, oh);
+        }
+    }
+
+    // Side-view cat facing right (toward oncoming obstacles): white silhouette with a
+    // 1px black outline + eye so it reads against white obstacles. Legs animate while
+    // grounded and tuck up when airborne (sells the pounce). Built up from the feet.
+    private function drawCat(dc as Dc) as Void {
+        var fx = CAT_X;
+        var fy = mGame.getFeetPx();
+        var top = fy - CAT_H;
+        var grounded = mGame.isGrounded();
+
+        // ---- white silhouette ----
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(fx + 2, top + 5, 14, 9);                 // torso
+        dc.fillCircle(fx + 14, top + 6, 5);                        // head (front)
+        dc.fillPolygon([[fx + 11, top + 2], [fx + 13, top - 3], [fx + 15, top + 2]]);  // ear
+        dc.fillPolygon([[fx + 15, top + 2], [fx + 17, top - 3], [fx + 19, top + 2]]);  // ear
+        dc.fillPolygon([[fx + 2, top + 7], [fx - 4, top + 1], [fx - 2, top + 8], [fx + 2, top + 11]]); // tail
+
+        // ---- legs ----
+        if (grounded) {
+            if (mGame.getAnimPhase() == 0) {
+                dc.fillRectangle(fx + 4, fy - 4, 3, 4);            // front leg fwd
+                dc.fillRectangle(fx + 11, fy - 4, 3, 3);           // back leg back
+            } else {
+                dc.fillRectangle(fx + 5, fy - 4, 3, 3);
+                dc.fillRectangle(fx + 12, fy - 4, 3, 4);
+            }
+        } else {
+            dc.fillRectangle(fx + 6, fy - 3, 7, 3);                // tucked legs (airborne)
+        }
+
+        // ---- 1px black outline + features ----
+        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(1);
+        dc.drawRectangle(fx + 2, top + 5, 14, 9);
+        dc.drawCircle(fx + 14, top + 6, 5);
+        dc.fillCircle(fx + 16, top + 5, 1);                        // eye
+        dc.drawLine(fx + 18, top + 7, fx + 20, top + 7);           // muzzle hint
     }
 
     // Live score in the top-right round sub-window (the "orange circle"). A black
-    // backing disc keeps the number readable when a pipe is scrolling through that corner.
+    // backing disc keeps the number readable when an obstacle is in that corner.
     private function drawScore(dc as Dc) as Void {
         var cx; var cy; var r;
         if (mHasSub) {
@@ -182,29 +208,28 @@ class FlappyView extends WatchUi.View {
     }
 
     private function drawReady(dc as Dc) as Void {
-        drawPlate(dc, READY_TITLE_Y, "FLAPPY WATCH", labelFont(), PLATE_HALF_LABEL);
-        drawPlate(dc, READY_HINT_Y, "PRESS START", labelFont(), PLATE_HALF_LABEL);
-        if (mGame.getBest() > 0) {
-            drawPlate(dc, READY_BEST_Y, "BEST " + mGame.getBest().format("%d"), labelFont(), PLATE_HALF_LABEL);
-        }
+        drawPlate(dc, READY_TITLE_Y, "CAT HOP");
+        drawPlate(dc, READY_HINT_Y, "TAP TO START");
+        // (Best score is shown on the GAME OVER screen, to keep READY uncluttered.)
     }
 
     private function drawGameOver(dc as Dc) as Void {
-        drawPlate(dc, OVER_TITLE_Y, "GAME OVER", labelFont(), PLATE_HALF_LABEL);
-        drawPlate(dc, OVER_SCORE_Y, "SCORE " + mGame.getScore().format("%d"), labelFont(), PLATE_HALF_LABEL);
-        drawPlate(dc, OVER_BEST_Y, "BEST " + mGame.getBest().format("%d"), labelFont(), PLATE_HALF_LABEL);
-        // Only invite a restart once the lock has expired, so the death press can't relaunch.
+        drawPlate(dc, OVER_TITLE_Y, "GAME OVER");
+        drawPlate(dc, OVER_SCORE_Y, "SCORE " + mGame.getScore().format("%d"));
+        drawPlate(dc, OVER_BEST_Y, "BEST " + mGame.getBest().format("%d"));
+        // Only invite a restart once the lock has expired, so the death tap can't relaunch.
         if (mGame.canRestart()) {
-            drawPlate(dc, OVER_HINT_Y, "PRESS START", labelFont(), PLATE_HALF_LABEL);
+            drawPlate(dc, OVER_HINT_Y, "TAP");
         }
     }
 
-    // Centered white text on a black plate, so words stay legible over white pipes.
-    private function drawPlate(dc as Dc, cy as Number, text as String, font as Graphics.FontType, halfH as Number) as Void {
+    // Centered white text on a black plate, so words stay legible over the scene.
+    private function drawPlate(dc as Dc, cy as Number, text as String) as Void {
+        var font = labelFont();
         var w = dc.getTextWidthInPixels(text, font);
         var pad = 6;
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
-        dc.fillRectangle(mCx - w / 2 - pad, cy - halfH, w + 2 * pad, halfH * 2);
+        dc.fillRectangle(mCx - w / 2 - pad, cy - PLATE_HALF_LABEL, w + 2 * pad, PLATE_HALF_LABEL * 2);
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
         dc.drawText(mCx, cy, font, text, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
     }
